@@ -64,7 +64,7 @@ executable haskair
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:lens-aeson, text, bytestring, wreq, lens, aeson,     base ^>=4.14.3.0
+    build-depends:optparse-applicative, htoml, lens-aeson, text, bytestring, wreq, lens, aeson,     base ^>=4.14.3.0
 
     -- Directories containing source files.
     hs-source-dirs:   app

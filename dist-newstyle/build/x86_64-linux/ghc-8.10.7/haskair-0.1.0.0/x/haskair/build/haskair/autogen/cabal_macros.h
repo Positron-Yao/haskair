@@ -10,15 +10,15 @@
   (major1) == 0 && (major2) <  1 || \
   (major1) == 0 && (major2) == 1 && (minor) <= 0)
 #endif /* MIN_VERSION_haskair */
-/* package aeson-2.2.3.0 */
+/* package aeson-1.5.6.0 */
 #ifndef VERSION_aeson
-#define VERSION_aeson "2.2.3.0"
+#define VERSION_aeson "1.5.6.0"
 #endif /* VERSION_aeson */
 #ifndef MIN_VERSION_aeson
 #define MIN_VERSION_aeson(major1,major2,minor) (\
-  (major1) <  2 || \
-  (major1) == 2 && (major2) <  2 || \
-  (major1) == 2 && (major2) == 2 && (minor) <= 3)
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  5 || \
+  (major1) == 1 && (major2) == 5 && (minor) <= 6)
 #endif /* MIN_VERSION_aeson */
 /* package base-4.14.3.0 */
 #ifndef VERSION_base
@@ -40,6 +40,16 @@
   (major1) == 0 && (major2) <  10 || \
   (major1) == 0 && (major2) == 10 && (minor) <= 12)
 #endif /* MIN_VERSION_bytestring */
+/* package htoml-1.0.0.3 */
+#ifndef VERSION_htoml
+#define VERSION_htoml "1.0.0.3"
+#endif /* VERSION_htoml */
+#ifndef MIN_VERSION_htoml
+#define MIN_VERSION_htoml(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  0 || \
+  (major1) == 1 && (major2) == 0 && (minor) <= 0)
+#endif /* MIN_VERSION_htoml */
 /* package lens-5.3.4 */
 #ifndef VERSION_lens
 #define VERSION_lens "5.3.4"
@@ -50,16 +60,26 @@
   (major1) == 5 && (major2) <  3 || \
   (major1) == 5 && (major2) == 3 && (minor) <= 4)
 #endif /* MIN_VERSION_lens */
-/* package lens-aeson-1.2.3 */
+/* package lens-aeson-1.1.3 */
 #ifndef VERSION_lens_aeson
-#define VERSION_lens_aeson "1.2.3"
+#define VERSION_lens_aeson "1.1.3"
 #endif /* VERSION_lens_aeson */
 #ifndef MIN_VERSION_lens_aeson
 #define MIN_VERSION_lens_aeson(major1,major2,minor) (\
   (major1) <  1 || \
-  (major1) == 1 && (major2) <  2 || \
-  (major1) == 1 && (major2) == 2 && (minor) <= 3)
+  (major1) == 1 && (major2) <  1 || \
+  (major1) == 1 && (major2) == 1 && (minor) <= 3)
 #endif /* MIN_VERSION_lens_aeson */
+/* package optparse-applicative-0.19.0.0 */
+#ifndef VERSION_optparse_applicative
+#define VERSION_optparse_applicative "0.19.0.0"
+#endif /* VERSION_optparse_applicative */
+#ifndef MIN_VERSION_optparse_applicative
+#define MIN_VERSION_optparse_applicative(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  19 || \
+  (major1) == 0 && (major2) == 19 && (minor) <= 0)
+#endif /* MIN_VERSION_optparse_applicative */
 /* package text-1.2.4.1 */
 #ifndef VERSION_text
 #define VERSION_text "1.2.4.1"

@@ -1,93 +1,120 @@
 {-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
 module Main where
-import Network.Wreq
+import qualified Network.Wreq as W
 import qualified Data.ByteString.Lazy.Char8 as BL
 import Control.Lens
-import GHC.Generics (Generic)
 import Data.Aeson -- (FromJSON, decode)
-import Data.Text (Text, unpack)
 import Data.Aeson.Lens -- (key, nth)
-import Text.Printf
+import Data.Text (pack, unpack)
+import Text.Printf (printf)
+import Text.Toml (parseTomlDoc)
+import qualified Options.Applicative as Opt
+import Options.Applicative
+-- import Debug.Trace
 
-type API = String
-myAPI :: API
-myAPI = "3762d7ab3be74be9bb530507251506"
-
+type API_Key = String
 type City = String
-localCity :: City
-localCity = "wuhan"
+type Lang = String
 
--- 顶层结构
-data WeatherCurrent = WeatherCurrent
-  { location :: Location
-  , current  :: Current
-  } deriving (Show, Generic)
+data Config = Config {
+    city :: City,
+    lang :: Lang
+} deriving (Show)
 
--- 位置信息
-data Location = Location
-  { name      :: Text
-  , region    :: Text
-  , country   :: Text
-  , lat       :: Double
-  , lon       :: Double
-  , localtime :: Text  
-  } deriving (Show, Generic)
+configParser :: Parser Config
+configParser = Config
+  <$> Opt.argument str
+      ( metavar "CITY"     -- 帮助中的占位符
+      <> value ""
+      <> help "City name"   -- 帮助文本
+      )
+  <*> strOption
+      ( long "lang"
+      <> short 'l'
+      <> metavar "LANG"
+      <> value "zh"
+      <> showDefault
+      <> help "Language code (default: zh)"
+      )
 
--- 当前天气信息
-data Current = Current
-  { temp_c      :: Double
-  , condition   :: Condition
-  , wind_kph    :: Double
-  , wind_degree :: Int
-  , wind_dir    :: Text
-  , pressure_mb :: Double
-  , pressure_in :: Double
-  , precip_mm   :: Double
-  , precip_in   :: Double
-  , humidity    :: Int
-  , cloud       :: Int
-  , feelslike_c :: Double
-  , windchill_c :: Double
-  , heatindex_c :: Double
-  , dewpoint_c  :: Double
-  , vis_km      :: Double
-  , uv          :: Double
-  , gust_kph    :: Double
-  } deriving (Show, Generic)
+opts :: ParserInfo Config
+opts = info (configParser <**> helper)
+  ( fullDesc
+  <> progDesc "Get weather information from weatherapi.com"
+  <> header "haskair - Haskell weather app" )
 
--- 天气状况
-data Condition = Condition
-  { text :: Text
-  , icon :: Text
-  , code :: Int
-  } deriving (Show, Generic)
+call_api :: API_Key -> City -> IO (W.Response BL.ByteString)
+call_api a c = W.get $ printf "http://api.weatherapi.com/v1/forecast.json?key=%s&q=%s&days=1&aqi=no&alert=no" a c
 
-instance FromJSON WeatherCurrent
-instance FromJSON Location
-instance FromJSON Current
-instance FromJSON Condition
-
-call_api :: API -> City -> IO (Response BL.ByteString)
-call_api api city = get $ printf "http://api.weatherapi.com/v1/current.json?key=%s&q=%s&aqi=no" api city
-
-main1 :: IO ()
-main1 = do
-    response <- call_api myAPI localCity
-    let mwc = decode (response ^. responseBody) :: Maybe WeatherCurrent
-    case mwc of
-        Nothing -> putStrLn "Error: decoding failed"
-        Just w -> do
-            putStrLn $ show w
+-- [TODO] 待适配中文字符
+fmt :: String -> String
+fmt s = printf "%15s" s
 
 main :: IO ()
 main = do
-    response <- call_api myAPI localCity
-    case decode (response ^. responseBody) :: Maybe Value of
-        Nothing -> putStrLn "Error: decoding failed"
-        Just w -> do
-            putStr $ "City: " ++ maybe "Unknown" unpack (w ^? key "location". key "name" . _String)
-            putStr $ " - " ++ maybe "Unknown" unpack (w ^? key "location". key "region" . _String)
-            putStrLn $ " - " ++ maybe "Unknown" unpack (w ^? key "location". key "country" . _String)
-            putStrLn $ "LocalTime: " ++ maybe "Unknown" unpack (w ^? key "location". key "localtime" . _String)
-            putStrLn $ "Temperature: " ++ maybe "Unknown" show (w ^? key "current". key "temp_c" . _Number)
+    config <- execParser opts
+    tomldata <- return. pack =<< readFile "./haskair.toml"
+    let Right toml = parseTomlDoc "" tomldata
+    let jtoml = toJSON toml
+    -- trace "jtoml: " (print jtoml)
+    response <- let a = (maybe "" unpack (jtoml ^? key "api_key" . _String))
+                    c = if null (city config) then (maybe "" unpack (jtoml ^? key "city" . _String)) else city config
+        in call_api a c
+    -- 语言
+    case lang config of
+        "zh" -> case decode (response ^. W.responseBody) :: Maybe Value of
+            Nothing -> putStrLn "Error: 解码错误"
+            Just w -> do
+                -- Location
+                case w ^? key "location" of
+                    Nothing -> putStrLn "Error: 地点未找到"
+                    Just location -> do
+                        putStr $ (fmt "城市: ") ++ maybe "" unpack (location ^? key "name" . _String)
+                        putStrLn $ " - " ++ maybe "" unpack (location ^? key "region" . _String)
+                        -- putStrLn $ " - " ++ maybe "" unpack (location ^? key "country" . _String)
+                        putStrLn $ (fmt "当地时间: ") ++ maybe "" unpack (location ^? key "localtime" . _String)
+                -- Current
+                case w ^? key "current" of
+                    Nothing -> putStrLn "Error: 未找到当前天气信息"
+                    Just current -> do
+                        putStrLn $ (fmt "温度: ") ++ maybe "" show (current ^? key "temp_c" . _Number) ++ "℃"
+                        putStrLn $ (fmt "风速: ") ++ maybe "" show (current ^? key "wind_kph" . _Number) ++ " km/h"
+                        putStrLn $ (fmt "云量: ") ++ maybe "" show (current ^? key "cloud" . _Number) ++ "%"
+                -- Forecast
+                case w ^? key "forecast". key "forecastday". nth 0. key "day" of
+                    Nothing -> putStrLn "Error: 未找到预报信息"
+                    Just forecast -> do
+                        putStr $ (fmt "日平均气温: ") ++ maybe "" show (forecast ^? key "mintemp_c" . _Number) ++ "℃"
+                        putStrLn $ " - " ++ maybe "" show (forecast ^? key "maxtemp_c" . _Number) ++ "℃"
+                        putStrLn $ (fmt "日间气温: ") ++ maybe "" show (forecast ^? key "avgtemp_c". _Number) ++ "℃"
+                        putStrLn $ (fmt "总降雨量: ") ++ maybe "" show (forecast ^? key "totalprecip_mm". _Number) ++ "mm"
+                        putStrLn $ (fmt "总降雪量: ") ++ maybe "" show (forecast ^? key "totalsnow_cm". _Number) ++ "mm"
+        "en" -> case decode (response ^. W.responseBody) :: Maybe Value of
+            Nothing -> putStrLn "Error: decoding failed"
+            Just w -> do
+                -- Location
+                case w ^? key "location" of
+                    Nothing -> putStrLn "Error: location not found"
+                    Just location -> do
+                        putStr $ (fmt "City: ") ++ maybe "" unpack (location ^? key "name" . _String)
+                        putStrLn $ " - " ++ maybe "" unpack (location ^? key "region" . _String)
+                        -- putStrLn $ " - " ++ maybe "" unpack (location ^? key "country" . _String)
+                        putStrLn $ (fmt "LocalTime: ") ++ maybe "" unpack (location ^? key "localtime" . _String)
+                -- Current
+                case w ^? key "current" of
+                    Nothing -> putStrLn "Error: current not found"
+                    Just current -> do
+                        putStrLn $ (fmt "Temperature: ") ++ maybe "" show (current ^? key "temp_c" . _Number) ++ "℃"
+                        putStrLn $ (fmt "Wind: ") ++ maybe "" show (current ^? key "wind_kph" . _Number) ++ " km/h"
+                        putStrLn $ (fmt "Cloud: ") ++ maybe "" show (current ^? key "cloud" . _Number) ++ "%"
+                -- Forecast
+                case w ^? key "forecast". key "forecastday". nth 0. key "day" of
+                    Nothing -> putStrLn "Error: forecast not found"
+                    Just forecast -> do
+                        putStr $ (fmt "DayTemRange: ") ++ maybe "" show (forecast ^? key "mintemp_c" . _Number) ++ "℃"
+                        putStrLn $ " - " ++ maybe "" show (forecast ^? key "maxtemp_c" . _Number) ++ "℃"
+                        putStrLn $ (fmt "DayAvgTem: ") ++ maybe "" show (forecast ^? key "avgtemp_c". _Number) ++ "℃"
+                        putStrLn $ (fmt "TotalPrincp: ") ++ maybe "" show (forecast ^? key "totalprecip_mm". _Number) ++ "mm"
+                        putStrLn $ (fmt "TotalSnow: ") ++ maybe "" show (forecast ^? key "totalsnow_cm". _Number) ++ "mm"
+        _ -> error "Invalid language code"
 
