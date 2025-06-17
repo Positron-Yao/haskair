@@ -1,3 +1,47 @@
 api_key = "3762d7ab3be74be9bb530507251506"
 city = "wuhan"
-lang = "zh"
+default_lang = "zh"
+
+[lang]
+
+[lang.zh]
+decode_error = "Error: 解码错误"
+
+[lang.zh.location]
+not_found = "Error: 地点未找到"
+location = "城市: "
+localtime = "当地时间: "
+
+[lang.zh.current]
+not_found = "Error: 未找到当前天气信息"
+temp = "温度: "
+wind = "风速: "
+cloud = "云量: "
+
+[lang.zh.forecast]
+not_found = "Error: 未找到预报信息"
+range = "日间气温: "
+agv = "日平均气温"
+precip = "总降雨量: "
+snow = "总降雪量: "
+
+[lang.en]
+decode_error = "Error: decofing failed"
+
+[lang.en.location]
+not_found = "Error: location not found"
+location = "City: "
+localtime = "LocalTime: "
+
+[lang.en.current]
+not_found = "Error: current not found"
+temp = "Temperature: "
+wind = "Wind: "
+cloud = "Cloud: "
+
+[lang.en.forecast]
+not_found = "Error: forecast not found"
+range = "DayTemRange: "
+avg = "DayTemAvg: "
+precip = "Precipitation: "
+snow = "Snow: "
