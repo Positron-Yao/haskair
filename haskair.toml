@@ -21,7 +21,7 @@ cloud = "云量: "
 [lang.zh.forecast]
 not_found = "Error: 未找到预报信息"
 range = "日间气温: "
-agv = "日平均气温"
+avg = "日均气温: "
 precip = "总降雨量: "
 snow = "总降雪量: "
 
